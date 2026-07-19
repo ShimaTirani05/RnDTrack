@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>R&D Progress Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#F1F4EC;
+  --surface:#FFFFFF;
+  --surface-2:#F7F9F3;
+  --ink:#16261C;
+  --muted:#657064;
+  --forest:#1F4A34;
+  --forest-2:#2E6B48;
+  --leaf:#5FA83C;
+  --soil:#7A5C3E;
+  --amber:#D9922B;
+  --danger:#C6553B;
+  --line:#DCE3D3;
+  --line-strong:#C4CFB7;
+  --shadow:0 1px 2px rgba(22,38,28,.06),0 8px 24px rgba(22,38,28,.05);
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Inter",system-ui,sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;margin:0;letter-spacing:-.01em}
+.mono{font-family:"Space Mono",monospace}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--forest-2)}
+
+/* ---------- Layout ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{
+  width:248px;flex-shrink:0;background:var(--forest);color:#EAF1E4;
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.brand{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.brand .logo{display:flex;align-items:center;gap:10px}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:var(--leaf);display:grid;place-items:center;flex-shrink:0}
+.brand .mark svg{width:18px;height:18px}
+.brand h1{font-size:17px;color:#fff;line-height:1.1}
+.brand p{margin:2px 0 0;font-size:11px;color:#A9C4A0;letter-spacing:.02em}
+
+.nav{padding:10px 12px;flex:1}
+.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#89A67F;padding:12px 8px 6px}
+.staff-btn{
+  width:100%;text-align:left;background:none;border:none;color:#D6E4CF;
+  padding:9px 10px;border-radius:10px;display:flex;align-items:center;gap:11px;margin-bottom:2px;
+  transition:background .12s;
+}
+.staff-btn:hover{background:rgba(255,255,255,.07)}
+.staff-btn.active{background:rgba(255,255,255,.14);color:#fff}
+.staff-btn .avatar{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.12);display:grid;place-items:center;font-family:"Bricolage Grotesque";font-weight:600;font-size:13px;flex-shrink:0;color:#EAF1E4}
+.staff-btn.active .avatar{background:var(--leaf);color:#12331F}
+.staff-btn .who{min-width:0}
+.staff-btn .who b{font-weight:600;font-size:13.5px;display:block;line-height:1.2}
+.staff-btn .who span{font-size:11px;color:#9EBB94;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.staff-btn.active .who span{color:#C3D9BB}
+
+.side-foot{padding:12px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:#9EBB94}
+.side-foot .sync{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--leaf);flex-shrink:0}
+.dot.local{background:var(--amber)}
+.side-foot button{background:rgba(255,255,255,.08);color:#D6E4CF;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px 9px;font-size:11px;width:100%;margin-top:6px}
+.side-foot button:hover{background:rgba(255,255,255,.15)}
+
+/* ---------- Main ---------- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{padding:22px 30px 0;max-width:1120px;width:100%;margin:0 auto}
+.crumb{font-size:12px;color:var(--muted);letter-spacing:.02em;margin-bottom:4px}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.page-head h2{font-size:27px;line-height:1.05}
+.page-head .role{color:var(--muted);font-size:13px;margin-top:3px}
+.updated{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.updated b{color:var(--forest-2)}
+
+.reminder{
+  margin:16px auto 0;max-width:1120px;width:100%;
+  background:linear-gradient(90deg,#FBEFD6,#FDF6E8);border:1px solid #EAD3A2;
+  border-radius:12px;padding:11px 16px;display:none;align-items:center;gap:12px;font-size:13px;color:#8A5A12;
+}
+.reminder.show{display:flex}
+.reminder svg{flex-shrink:0}
+.reminder.overdue{background:linear-gradient(90deg,#FBE0D8,#FDEDE7);border-color:#E7B3A4;color:#9A3B22}
+
+.subtabs{max-width:1120px;width:100%;margin:20px auto 0;padding:0 30px;display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line)}
+.subtab{
+  background:none;border:none;padding:10px 14px 12px;font-size:13.5px;font-weight:500;color:var(--muted);
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;border-radius:6px 6px 0 0;
+}
+.subtab:hover{color:var(--ink);background:var(--surface-2)}
+.subtab.active{color:var(--forest);border-bottom-color:var(--forest);font-weight:600}
+
+.content{max-width:1120px;width:100%;margin:0 auto;padding:22px 30px 60px;flex:1}
+.module-intro{color:var(--muted);font-size:13px;margin:0 0 18px;max-width:70ch}
+
+/* ---------- Cards & grids ---------- */
+.grid{display:grid;gap:16px}
+.grid.cols-2{grid-template-columns:repeat(2,1fr)}
+.grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.grid.cols-4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.card-head{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-head h3{font-size:16px}
+.card-head .tag{font-size:11px;font-weight:600;color:var(--forest-2);background:var(--surface-2);border:1px solid var(--line);padding:3px 9px;border-radius:20px}
+.card-body{padding:16px 18px}
+
+.section-title{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin:0 0 12px}
+
+/* fields */
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px}
+.field-row{display:flex;gap:12px}
+.field-row .field{flex:1}
+input,select,textarea{
+  width:100%;font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--line-strong);border-radius:9px;padding:8px 11px;transition:border .12s,background .12s;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--forest-2);background:#fff;box-shadow:0 0 0 3px rgba(46,107,72,.1)}
+input[type=number]{font-family:"Space Mono",monospace}
+textarea{resize:vertical;min-height:60px}
+.link-input{display:flex;gap:8px;align-items:center}
+.link-input input{flex:1}
+.link-open{flex-shrink:0;width:38px;height:37px;border:1px solid var(--line-strong);border-radius:9px;background:var(--surface-2);display:grid;place-items:center;color:var(--forest-2)}
+.link-open:hover{background:var(--forest);color:#fff;border-color:var(--forest)}
+.link-open.disabled{opacity:.4;pointer-events:none}
+
+/* KPI meter — the signature element */
+.kpi{margin-top:4px}
+.kpi-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.kpi-top .val{font-family:"Space Mono",monospace;font-weight:700;font-size:22px;line-height:1}
+.kpi-top .pct{font-family:"Space Mono",monospace;font-weight:700;font-size:15px}
+.kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.bar{height:9px;border-radius:6px;background:var(--line);overflow:hidden}
+.bar > i{display:block;height:100%;border-radius:6px;background:var(--leaf);transition:width .4s ease}
+.bar.warn > i{background:var(--amber)}
+.bar.bad > i{background:var(--danger)}
+.bar.good > i{background:var(--leaf)}
+.kpi-sub{font-size:11.5px;color:var(--muted);margin-top:6px}
+.kpi-sub b{color:var(--ink);font-family:"Space Mono",monospace}
+
+/* stat pills */
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:4px}
+.stat{flex:1;min-width:120px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+.stat .n{font-family:"Space Mono",monospace;font-weight:700;font-size:20px;line-height:1.1}
+.stat .l{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* tables */
+.tbl-wrap{overflow-x:auto}
+table.data{width:100%;border-collapse:collapse;font-size:13px}
+table.data th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line-strong);white-space:nowrap}
+table.data td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.data tr:last-child td{border-bottom:none}
+table.data input,table.data textarea{background:transparent;border:1px solid transparent;padding:6px 8px}
+table.data input:hover,table.data textarea:hover{border-color:var(--line-strong);background:var(--surface-2)}
+table.data td.num{font-family:"Space Mono",monospace}
+.row-del{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--danger);display:grid;place-items:center}
+.row-del:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+
+.btn{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:9px;padding:8px 14px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--forest-2);color:var(--forest)}
+.btn.primary{background:var(--forest);color:#fff;border-color:var(--forest)}
+.btn.primary:hover{background:var(--forest-2);color:#fff}
+.btn.ghost{background:none;border-style:dashed}
+.add-row{margin-top:12px}
+
+.saved-flash{position:fixed;right:20px;bottom:20px;background:var(--forest);color:#fff;padding:9px 15px;border-radius:10px;font-size:13px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none;z-index:50}
+.saved-flash.show{opacity:1;transform:translateY(0)}
+
+.empty{color:var(--muted);font-size:13px;padding:8px 0}
+
+/* mobile */
+.menu-toggle{display:none}
+.scrim{display:none}
+@media (max-width:880px){
+  .grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:0;top:0;z-index:40;transform:translateX(-100%);transition:transform .22s;box-shadow:0 0 40px rgba(0,0,0,.3)}
+  .sidebar.open{transform:translateX(0)}
+  .scrim.show{display:block;position:fixed;inset:0;background:rgba(22,38,28,.4);z-index:35}
+  .menu-toggle{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);position:sticky;top:12px;margin:12px 0 0 16px;z-index:10}
+  .topbar{padding:8px 18px 0}
+  .subtabs{padding:0 18px}
+  .content{padding:20px 18px 60px}
+  .page-head h2{font-size:23px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">
+        <div class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21c0-5 0-8 3-11M12 21C9 16 5 15 4 8c5 0 8 3 8 7M12 10c0-4 3-6 8-6-1 5-4 6-8 6" stroke="#12331F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h1>R&amp;D Tracker</h1><p>PROGRESS TIM RISET</p></div>
+      </div>
+    </div>
+    <nav class="nav" id="staffNav"></nav>
+    <div class="side-foot">
+      <div class="sync"><span class="dot" id="syncDot"></span><span id="syncText">Menyiapkan…</span></div>
+      <button id="exportBtn">Backup data (JSON)</button>
+      <button id="importBtn">Pulihkan dari backup</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none" />
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="main">
+    <button class="menu-toggle" id="menuToggle" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="#16261C" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <div class="topbar">
+      <div class="crumb" id="crumb">—</div>
+      <div class="page-head">
+        <div>
+          <h2 id="staffName">—</h2>
+          <div class="role" id="staffRole">—</div>
+        </div>
+        <div class="updated" id="updatedInfo"></div>
+      </div>
+    </div>
+    <div class="reminder" id="reminder"></div>
+    <div class="subtabs" id="subtabs"></div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+<div class="saved-flash" id="flash">Tersimpan</div>
+
+<script type="module">
+/* ============================================================
+   R&D PROGRESS TRACKER
+   - Config-driven modul untuk 6 staff
+   - Semua field bisa diedit, autosave
+   - Sync antar-device via Firebase (opsional) + fallback lokal
+   ============================================================ */
+
+/* ---------- 1. KONFIGURASI FIREBASE (untuk sync antar-device) ----------
+   Kosongkan (biarkan apiKey="") -> data tersimpan lokal di perangkat ini saja.
+   Isi dengan config proyek Firebase Anda -> data otomatis tersinkron
+   real-time ke SEMUA perangkat yang membuka aplikasi ini.
+   Lihat panduan-setup.md untuk langkah lengkap.                          */
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+/* -------------------------------------------------------------------- */
+
+const REMINDER_DAYS = 7; // ingatkan update tiap 7 hari
+
+/* ---------- 2. SCHEMA: definisi staff & modul ---------- */
+// Tipe modul: cropBlocks | production | itemsKPI | stockList | links | table
+
+const SCHEMA = {
+  shima: {
+    name:"Shima", initial:"S", role:"Peneliti Melon — Greenhouse, Nursery, Karantina & Aklimatisasi",
+    modules:[
+      { key:"melon", title:"Melon", type:"cropBlocks",
+        intro:"Progress tanaman melon di greenhouse. Isi tanggal tanam & data panen; umur dan pencapaian KPI dihitung otomatis.",
+        fields:[
+          {key:"tanggalTanam",label:"Tanggal tanam",type:"date"},
+          {key:"perkiraanPanen",label:"Perkiraan panen",type:"date"},
+          {key:"populasi",label:"Populasi (tanaman)",type:"number"},
+          {key:"pencapaianPanen",label:"Pencapaian panen (kg)",type:"number"},
+          {key:"targetPanen",label:"Target panen / KPI (kg)",type:"number"},
+        ],
+        links:[
+          {key:"pertumbuhan",label:"Data pertumbuhan"},
+          {key:"laporanRiset",label:"Laporan riset"},
+          {key:"bestConsume",label:"Riset best consume"},
+        ],
+        data:{ items:[
+          {name:"GH Blok B", tanggalTanam:"", perkiraanPanen:"", populasi:0, pencapaianPanen:0, targetPanen:0},
+          {name:"GH F", tanggalTanam:"", perkiraanPanen:"", populasi:0, pencapaianPanen:0, targetPanen:0},
+        ], links:{pertumbuhan:"",laporanRiset:"",bestConsume:""} }
+      },
+      { key:"nursery", title:"Nursery", type:"stockList",
+        intro:"Stok tanaman pendukung ekosistem di nursery.",
+        unit:"tanaman",
+        links:[{key:"data",label:"Data tanaman"}],
+        data:{ items:[
+          {name:"Refugia", stok:0},
+          {name:"Pengikat tanah", stok:0},
+          {name:"Tanaman hias", stok:0},
+          {name:"Fiksasi nitrogen", stok:0},
+          {name:"Penghasil nektar & polen", stok:0},
+        ], links:{data:""} }
+      },
+      { key:"karantina", title:"Karantina & Aklimatisasi", type:"stockList",
+        intro:"Stok bibit dalam karantina dan aklimatisasi.",
+        unit:"bibit", keterangan:true,
+        links:[{key:"data",label:"Data tanaman"}],
+        data:{ items:[
+          {name:"Bibit durian", stok:0, keterangan:""},
+          {name:"Bibit kelengkeng", stok:0, keterangan:""},
+          {name:"Bibit salak", stok:0, keterangan:""},
+        ], links:{data:""} }
+      },
+    ]
+  },
+
+  muthia: {
+    name:"Muthia", initial:"M", role:"Admin — Pengajuan, Berita Acara, Notulensi, Risalah, SPK & BAPP",
+    modules:[
+      { key:"pengajuan", title:"Pengajuan Barang", type:"links",
+        intro:"Tautan drive untuk Material Request (MR) dan Purchase Request (PR).",
+        data:{ links:{mr:"", pr:""} },
+        linkDefs:[{key:"mr",label:"Drive MR (Material Request)"},{key:"pr",label:"Drive PR (Purchase Request)"}] },
+      { key:"beritaAcara", title:"Berita Acara", type:"links",
+        intro:"Tautan drive berita acara.",
+        data:{ links:{drive:""} }, linkDefs:[{key:"drive",label:"Drive berita acara"}] },
+      { key:"forkom", title:"Forkom", type:"links",
+        intro:"Tautan drive forum komunikasi.",
+        data:{ links:{drive:""} }, linkDefs:[{key:"drive",label:"Drive forkom"}] },
+      { key:"notulensi", title:"Notulensi Meeting", type:"links",
+        intro:"Tautan drive notulensi rapat.",
+        data:{ links:{drive:""} }, linkDefs:[{key:"drive",label:"Drive notulensi"}] },
+      { key:"review", title:"Review", type:"links",
+        intro:"Tautan drive dokumen review.",
+        data:{ links:{drive:""} }, linkDefs:[{key:"drive",label:"Drive review"}] },
+      { key:"risalah", title:"Risalah Riset", type:"links",
+        intro:"Tautan drive risalah riset.",
+        data:{ links:{drive:""} }, linkDefs:[{key:"drive",label:"Drive risalah riset"}] },
+      { key:"spk", title:"SPK & BAPP", type:"links",
+        intro:"Tautan drive SPK dan BAPP.",
+        data:{ links:{drive:""} }, linkDefs:[{key:"drive",label:"Drive SPK & BAPP"}] },
+    ]
+  },
+
+  dafit: {
+    name:"Dafit", initial:"D", role:"Soil Scientist — Biochar, Kompos, Vermicast & Vermijuice",
+    modules:[
+      prodMod("biochar","Biochar","kg"),
+      prodMod("kompos","Kompos","kg"),
+      prodMod("vermicast","Vermicast","kg"),
+      prodMod("vermijuice","Vermijuice","liter"),
+    ]
+  },
+
+  thifa: {
+    name:"Thifa", initial:"T", role:"Plant Protection Scientist — Nutrisi Organik, Beneficial Microorganism & Analisa HPT",
+    modules:[
+      { key:"nutrisi", title:"Nutrisi Organik", type:"itemsKPI",
+        intro:"Stok, alokasi, dan pencapaian produksi bulanan tiap jenis nutrisi organik terhadap target KPI.",
+        unit:"liter",
+        links:[{key:"data",label:"Data produksi"}],
+        data:{ items:[
+          {name:"AAP", stok:0, alokasi:0, produksi:0, target:0},
+          {name:"Bioenzim", stok:0, alokasi:0, produksi:0, target:0},
+          {name:"POC", stok:0, alokasi:0, produksi:0, target:0},
+          {name:"Biopestisida", stok:0, alokasi:0, produksi:0, target:0},
+        ], links:{data:""} }
+      },
+      { key:"microorganism", title:"Beneficial Microorganism", type:"itemsKPI",
+        intro:"Stok, alokasi, dan pencapaian produksi bulanan tiap mikroorganisme terhadap target KPI.",
+        unit:"liter",
+        links:[{key:"data",label:"Data produksi"}],
+        data:{ items:[
+          {name:"Trichoderma", stok:0, alokasi:0, produksi:0, target:0},
+          {name:"Bacillus", stok:0, alokasi:0, produksi:0, target:0},
+          {name:"Mikoriza", stok:0, alokasi:0, produksi:0, target:0},
+          {name:"Metharizium", stok:0, alokasi:0, produksi:0, target:0},
+        ], links:{data:""} }
+      },
+      { key:"hpt", title:"Analisa HPT", type:"table",
+        intro:"Temuan hama & penyakit tanaman (HPT) tiap kebun beserta keterangannya.",
+        columns:[
+          {key:"kebun",label:"Kebun",type:"text"},
+          {key:"jenis",label:"Jenis hama / penyakit",type:"text"},
+          {key:"keterangan",label:"Keterangan",type:"textarea"},
+        ],
+        links:[{key:"data",label:"Data lengkap"}],
+        data:{ items:[
+          {kebun:"Blok B", jenis:"", keterangan:""},
+        ], links:{data:""} }
+      },
+    ]
+  },
+
+  huda: {
+    name:"Huda", initial:"H", role:"Agronomist — Kondisi Iklim & Monitoring Kebun",
+    modules:[
+      { key:"iklim", title:"Kondisi Iklim", type:"table",
+        intro:"Ringkasan curah hujan dan hari hujan tiap kebun. Total dihitung otomatis.",
+        columns:[
+          {key:"kebun",label:"Kebun",type:"text"},
+          {key:"curahHujan",label:"Curah hujan (mm)",type:"number"},
+          {key:"hariHujan",label:"Hari hujan",type:"number"},
+        ],
+        sums:[{field:"curahHujan",label:"Total curah hujan",unit:"mm"},{field:"hariHujan",label:"Total hari hujan",unit:"hari"}],
+        links:[{key:"data",label:"Data iklim"}],
+        data:{ items:[
+          {kebun:"Blok B", curahHujan:0, hariHujan:0},
+          {kebun:"Cigentur", curahHujan:0, hariHujan:0},
+          {kebun:"Selagombong", curahHujan:0, hariHujan:0},
+          {kebun:"Plasma", curahHujan:0, hariHujan:0},
+        ], links:{data:""} }
+      },
+      { key:"monitoring", title:"Monitoring Kebun", type:"table",
+        intro:"Temuan hama & penyakit serta kelembaban tanah tiap kebun.",
+        columns:[
+          {key:"kebun",label:"Kebun",type:"text"},
+          {key:"temuan",label:"Temuan hama & penyakit",type:"textarea"},
+          {key:"kelembaban",label:"Kelembaban tanah (%)",type:"number"},
+          {key:"link",label:"Link data",type:"link"},
+        ],
+        data:{ items:[
+          {kebun:"Blok B", temuan:"", kelembaban:0, link:""},
+          {kebun:"Cigentur", temuan:"", kelembaban:0, link:""},
+          {kebun:"Selagombong", temuan:"", kelembaban:0, link:""},
+          {kebun:"Plasma", temuan:"", kelembaban:0, link:""},
+        ], links:{} }
+      },
+    ]
+  },
+
+  sofyan: {
+    name:"Sofyan", initial:"So", role:"Mandor Kebun Produksi — Alpukat, Kelengkeng, Nangka, Pisang & Durian",
+    modules:[
+      harvestMod("alpukat","Alpukat",["Blok A1","Blok A2"]),
+      harvestMod("kelengkeng","Kelengkeng",["Blok B1","Blok B2"]),
+      harvestMod("nangka","Nangka",["Blok B1","Blok B2"]),
+      harvestMod("pisang","Pisang",["Blok Pisang Glory"]),
+      harvestMod("durian","Durian",["Durian Organik","Durian Kimia"]),
+    ]
+  },
+};
+
+// helper builder: modul produksi soil-amendment (Dafit)
+function prodMod(key,title,unit){
+  return { key, title, type:"production", unit,
+    intro:`Stok, alokasi, pencapaian produksi ${title.toLowerCase()}, dan persentase pemenuhan target KPI.`,
+    data:{ stok:0, alokasi:0, pencapaian:0, target:0, link:"" } };
+}
+// helper builder: modul panen kebun produksi (Sofyan)
+function harvestMod(key,title,blocks){
+  return { key, title, type:"cropBlocks",
+    intro:`Populasi, forecast panen, dan pencapaian panen vs target KPI tiap blok ${title.toLowerCase()}.`,
+    fields:[
+      {key:"populasi",label:"Populasi (tanaman)",type:"number"},
+      {key:"forecast",label:"Forecast panen (kg)",type:"number"},
+      {key:"pencapaianPanen",label:"Pencapaian panen (kg)",type:"number"},
+      {key:"targetPanen",label:"Target panen / KPI (kg)",type:"number"},
+    ],
+    links:[{key:"data",label:"Link data"}],
+    data:{ items:blocks.map(b=>({name:b,populasi:0,forecast:0,pencapaianPanen:0,targetPanen:0})),
+           links:{data:""} }
+  };
+}
+
+/* ============================================================
+   3. STATE + PENYIMPANAN
+   ============================================================ */
+const LS_KEY = "rnd_tracker_state_v1";
+let STATE = { data:{}, meta:{ updated:{} } }; // data[staff][module] ; meta.updated[staff]=timestamp
+let store = null;          // adapter aktif
+let saveTimer = null;
+let current = { staff:"shima", module:"melon" };
+let suppressWrite = false; // saat menerima update dari remote
+
+// bangun struktur default kalau belum ada
+function ensureDefaults(){
+  for(const [sk,staff] of Object.entries(SCHEMA)){
+    STATE.data[sk] = STATE.data[sk] || {};
+    for(const mod of staff.modules){
+      if(!STATE.data[sk][mod.key]){
+        STATE.data[sk][mod.key] = deepClone(mod.data);
+      }
+    }
+  }
+}
+const deepClone = o => JSON.parse(JSON.stringify(o));
+
+function getPath(obj,path){
+  return path.split(".").reduce((a,k)=> (a==null?undefined:a[k]), obj);
+}
+function setPath(obj,path,val){
+  const ks = path.split("."); const last = ks.pop();
+  let t = obj; for(const k of ks){ if(t[k]==null) t[k]= /^\d+$/.test(ks[ks.indexOf(k)+1]||last)?[]:{}; t=t[k]; }
+  t[last]=val;
+}
+
+/* ---- Adapter: Firebase (real-time) atau Lokal ---- */
+async function initStore(){
+  if(FIREBASE_CONFIG.apiKey){
+    try{
+      const [{ initializeApp }, fs] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+      ]);
+      const app = initializeApp(FIREBASE_CONFIG);
+      const db = fs.getFirestore(app);
+      const ref = fs.doc(db,"rnd","state");
+      store = {
+        mode:"cloud",
+        async load(){
+          const snap = await fs.getDoc(ref);
+          if(snap.exists()) return snap.data();
+          return null;
+        },
+        async save(state){ await fs.setDoc(ref, deepClone(state)); },
+        watch(cb){
+          fs.onSnapshot(ref, snap=>{ if(snap.exists()) cb(snap.data()); });
+        }
+      };
+      return;
+    }catch(e){ console.warn("Firebase gagal, memakai penyimpanan lokal:",e); }
+  }
+  // fallback lokal (localStorage -> memory)
+  let mem=null;
+  const canLS = (()=>{ try{ localStorage.setItem("__t","1");localStorage.removeItem("__t");return true;}catch(_){return false;} })();
+  store = {
+    mode: canLS ? "local" : "memory",
+    async load(){
+      if(canLS){ const raw=localStorage.getItem(LS_KEY); return raw?JSON.parse(raw):null; }
+      return mem;
+    },
+    async save(state){
+      if(canLS){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(_){ mem=deepClone(state);} }
+      else mem=deepClone(state);
+    },
+    watch(){}
+  };
+}
+
+function persist(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    if(suppressWrite) return;
+    try{ await store.save(STATE); flash("Tersimpan"); }
+    catch(e){ flash("Gagal menyimpan"); console.error(e); }
+  }, 500);
+}
+
+function touch(staff){
+  STATE.meta.updated[staff] = Date.now();
+  renderUpdatedInfo(); renderReminder(); renderNav();
+}
+
+/* ============================================================
+   4. UTIL TAMPILAN
+   ============================================================ */
+const flashEl = document.getElementById("flash");
+let flashT=null;
+function flash(msg){ flashEl.textContent=msg; flashEl.classList.add("show"); clearTimeout(flashT); flashT=setTimeout(()=>flashEl.classList.remove("show"),1400); }
+
+function pct(num,den){ den=+den||0; num=+num||0; return den>0? Math.round(num/den*100):0; }
+function barClass(p){ return p>=90?"good":p>=60?"warn":"bad"; }
+function fmtNum(n){ n=+n||0; return n.toLocaleString("id-ID"); }
+function daysSince(ts){ if(!ts) return null; return Math.floor((Date.now()-ts)/86400000); }
+function hst(dateStr){
+  if(!dateStr) return "—";
+  const d=new Date(dateStr); if(isNaN(d)) return "—";
+  const days=Math.floor((Date.now()-d.getTime())/86400000);
+  if(days<0) return "belum tanam";
+  return `${days} HST (~${Math.floor(days/7)} mgg)`;
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function safeUrl(u){ u=(u||"").trim(); if(!u) return ""; return /^https?:\/\//i.test(u)?u:"https://"+u; }
+
+// input kecil
+function inputHTML(path,type,value,ph=""){
+  const v=esc(value);
+  if(type==="textarea") return `<textarea data-path="${path}" placeholder="${ph}" rows="1">${v}</textarea>`;
+  const t = type==="number"?"number":type==="date"?"date":"text";
+  const extra = type==="number"?'min="0"':"";
+  return `<input data-path="${path}" type="${t}" ${extra} value="${v}" placeholder="${ph}" />`;
+}
+function linkFieldHTML(path,label,value){
+  const u=safeUrl(value); const dis=u?"":"disabled";
+  return `<div class="field"><label>${esc(label)}</label>
+    <div class="link-input">
+      <input data-path="${path}" type="url" value="${esc(value)}" placeholder="Tempel link Google Drive…" />
+      <a class="link-open ${dis}" data-linkopen href="${u||"#"}" target="_blank" rel="noopener" title="Buka">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 15L20 4M20 4h-6M20 4v6M14 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div></div>`;
+}
+function kpiHTML(numPath,denPath,label,unit){
+  const num=+getPath(STATE.data,numPath)||0, den=+getPath(STATE.data,denPath)||0, p=pct(num,den);
+  return `<div class="kpi" data-kpi data-num="${numPath}" data-den="${denPath}">
+    <div class="kpi-top"><span class="val">${fmtNum(num)}<span style="font-size:12px;font-weight:400;color:var(--muted)"> ${esc(unit||"")}</span></span><span class="pct">${p}%</span></div>
+    <div class="bar ${barClass(p)}"><i style="width:${Math.min(p,100)}%"></i></div>
+    <div class="kpi-sub">Target KPI: <b>${fmtNum(den)}</b> ${esc(unit||"")} • <span class="kpi-label">Pemenuhan ${p}%</span></div>
+  </div>`;
+}
+
+/* ============================================================
+   5. RENDERER PER TIPE MODUL
+   ============================================================ */
+function renderModule(staffKey,mod){
+  const base=`${staffKey}.${mod.key}`;
+  const d=STATE.data[staffKey][mod.key];
+  let html = mod.intro?`<p class="module-intro">${esc(mod.intro)}</p>`:"";
+  switch(mod.type){
+    case "cropBlocks": html+=renderCropBlocks(base,mod,d); break;
+    case "production": html+=renderProduction(base,mod,d); break;
+    case "itemsKPI":   html+=renderItemsKPI(base,mod,d); break;
+    case "stockList":  html+=renderStockList(base,mod,d); break;
+    case "links":      html+=renderLinks(base,mod,d); break;
+    case "table":      html+=renderTable(base,mod,d); break;
+  }
+  return html;
+}
+
+// --- cropBlocks: kartu per blok dengan KPI panen (Shima melon & Sofyan) ---
+function renderCropBlocks(base,mod,d){
+  const cols = d.items.length>=2 ? "cols-2":"";
+  const hasTanggal = mod.fields.some(f=>f.key==="tanggalTanam");
+  let cards = d.items.map((it,i)=>{
+    const p=`${base}.items.${i}`;
+    const fields = mod.fields.map(f=>{
+      if(f.key==="targetPanen") return ""; // ditangani di KPI
+      if(f.key==="pencapaianPanen") return "";
+      return `<div class="field"><label>${esc(f.label)}</label>${inputHTML(`${p}.${f.key}`,f.type,it[f.key])}</div>`;
+    }).join("");
+    const stats = `<div class="stats">
+        <div class="stat"><div class="n" data-val="${p}.populasi">${fmtNum(it.populasi)}</div><div class="l">Populasi</div></div>
+        ${hasTanggal?`<div class="stat"><div class="n" data-hst="${p}.tanggalTanam" style="font-size:14px">${hst(it.tanggalTanam)}</div><div class="l">Umur tanaman</div></div>`:""}
+      </div>`;
+    const kpi = `<div class="field"><label>Pencapaian panen (kg)</label>${inputHTML(`${p}.pencapaianPanen`,"number",it.pencapaianPanen)}</div>
+      <div class="field"><label>Target panen / KPI (kg)</label>${inputHTML(`${p}.targetPanen`,"number",it.targetPanen)}</div>
+      ${kpiHTML(`${p}.pencapaianPanen`,`${p}.targetPanen`,"Panen","kg")}`;
+    return `<div class="card">
+      <div class="card-head"><h3>${esc(it.name)}</h3><span class="tag">${esc(mod.title)}</span></div>
+      <div class="card-body">${stats}${fields}<div style="height:6px"></div>${kpi}</div>
+    </div>`;
+  }).join("");
+  return `<div class="grid ${cols}">${cards}</div>${linksCard(base,mod,d)}`;
+}
+
+// --- production: satu entitas KPI (Dafit) ---
+function renderProduction(base,mod,d){
+  return `<div class="grid cols-2">
+    <div class="card"><div class="card-head"><h3>${esc(mod.title)}</h3><span class="tag">Produksi</span></div>
+      <div class="card-body">
+        <div class="stats">
+          <div class="stat"><div class="n" data-val="${base}.stok">${fmtNum(d.stok)}</div><div class="l">Stok (${esc(mod.unit)})</div></div>
+          <div class="stat"><div class="n" data-val="${base}.alokasi">${fmtNum(d.alokasi)}</div><div class="l">Alokasi (${esc(mod.unit)})</div></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Stok saat ini (${esc(mod.unit)})</label>${inputHTML(`${base}.stok`,"number",d.stok)}</div>
+          <div class="field"><label>Alokasi ke kebun (${esc(mod.unit)})</label>${inputHTML(`${base}.alokasi`,"number",d.alokasi)}</div>
+        </div>
+      </div></div>
+    <div class="card"><div class="card-head"><h3>Pencapaian vs Target KPI</h3></div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field"><label>Pencapaian produksi (${esc(mod.unit)})</label>${inputHTML(`${base}.pencapaian`,"number",d.pencapaian)}</div>
+          <div class="field"><label>Target / KPI (${esc(mod.unit)})</label>${inputHTML(`${base}.target`,"number",d.target)}</div>
+        </div>
+        ${kpiHTML(`${base}.pencapaian`,`${base}.target`,"Produksi",mod.unit)}
+      </div></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="card-body">${linkFieldHTML(`${base}.link`,"Link data",d.link)}</div></div>`;
+}
+
+// --- itemsKPI: tabel jenis dengan stok/alokasi/produksi/target + % (Thifa) ---
+function renderItemsKPI(base,mod,d){
+  const rows = d.items.map((it,i)=>{
+    const p=`${base}.items.${i}`; const per=pct(it.produksi,it.target);
+    return `<tr>
+      <td><b>${esc(it.name)}</b></td>
+      <td class="num">${inputHTML(`${p}.stok`,"number",it.stok)}</td>
+      <td class="num">${inputHTML(`${p}.alokasi`,"number",it.alokasi)}</td>
+      <td class="num">${inputHTML(`${p}.produksi`,"number",it.produksi)}</td>
+      <td class="num">${inputHTML(`${p}.target`,"number",it.target)}</td>
+      <td style="min-width:130px">
+        <div class="bar ${barClass(per)}" data-kpi data-num="${p}.produksi" data-den="${p}.target" style="margin-bottom:3px"><i style="width:${Math.min(per,100)}%"></i></div>
+        <span class="mono" style="font-size:12px" data-pct="${p}.produksi|${p}.target">${per}%</span>
+      </td>
+    </tr>`;
+  }).join("");
+  return `<div class="card">
+    <div class="card-head"><h3>${esc(mod.title)}</h3><span class="tag">${esc(mod.unit)}</span></div>
+    <div class="card-body"><div class="tbl-wrap"><table class="data">
+      <thead><tr><th>Jenis</th><th>Stok</th><th>Alokasi</th><th>Produksi bln ini</th><th>Target KPI</th><th>Pemenuhan</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      <div style="margin-top:14px">${linkFieldHTML(`${base}.links.data`,"Link data produksi",d.links.data)}</div>
+    </div></div>`;
+}
+
+// --- stockList: daftar stok sederhana (Nursery, Karantina) ---
+function renderStockList(base,mod,d){
+  const total = d.items.reduce((s,it)=>s+(+it.stok||0),0);
+  const rows = d.items.map((it,i)=>{
+    const p=`${base}.items.${i}`;
+    return `<tr>
+      <td><b>${esc(it.name)}</b></td>
+      <td class="num" style="width:150px">${inputHTML(`${p}.stok`,"number",it.stok)}</td>
+      ${mod.keterangan?`<td>${inputHTML(`${p}.keterangan`,"textarea",it.keterangan,"Keterangan…")}</td>`:""}
+    </tr>`;
+  }).join("");
+  return `<div class="card">
+    <div class="card-head"><h3>${esc(mod.title)}</h3>
+      <span class="tag" data-sum="${base}.items:stok">Total: ${fmtNum(total)} ${esc(mod.unit)}</span></div>
+    <div class="card-body"><div class="tbl-wrap"><table class="data">
+      <thead><tr><th>Jenis</th><th>Stok (${esc(mod.unit)})</th>${mod.keterangan?"<th>Keterangan</th>":""}</tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      <div style="margin-top:14px">${mod.links.map(l=>linkFieldHTML(`${base}.links.${l.key}`,l.label,d.links[l.key])).join("")}</div>
+    </div></div>`;
+}
+
+// --- links: kumpulan tautan drive (Muthia) ---
+function renderLinks(base,mod,d){
+  return `<div class="card" style="max-width:640px">
+    <div class="card-head"><h3>${esc(mod.title)}</h3></div>
+    <div class="card-body">
+      ${mod.linkDefs.map(l=>linkFieldHTML(`${base}.links.${l.key}`,l.label,d.links[l.key])).join("")}
+    </div></div>`;
+}
+
+// --- table: tabel generik yang bisa tambah/hapus baris (HPT, iklim, monitoring) ---
+function renderTable(base,mod,d){
+  const rows = d.items.map((it,i)=>{
+    const p=`${base}.items.${i}`;
+    const tds = mod.columns.map(c=>{
+      if(c.type==="link"){
+        const u=safeUrl(it[c.key]); const dis=u?"":"disabled";
+        return `<td style="min-width:150px"><div class="link-input">${inputHTML(`${p}.${c.key}`,"text",it[c.key],"link…")}<a class="link-open ${dis}" data-linkopen href="${u||"#"}" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 15L20 4M20 4h-6M20 4v6M14 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div></td>`;
+      }
+      const cls = c.type==="number"?"num":"";
+      return `<td class="${cls}"${c.type==="textarea"?' style="min-width:200px"':''}>${inputHTML(`${p}.${c.key}`,c.type,it[c.key])}</td>`;
+    }).join("");
+    return `<tr>${tds}<td><button class="row-del" data-del="${base}.items.${i}" title="Hapus baris">✕</button></td></tr>`;
+  }).join("");
+  const sums = mod.sums?`<div class="stats" style="margin-bottom:14px">${mod.sums.map(s=>{
+      const tot=d.items.reduce((a,it)=>a+(+it[s.field]||0),0);
+      return `<div class="stat"><div class="n" data-sum="${base}.items:${s.field}">${fmtNum(tot)}</div><div class="l">${esc(s.label)} (${esc(s.unit)})</div></div>`;
+    }).join("")}</div>`:"";
+  const links = (mod.links&&mod.links.length)?`<div style="margin-top:14px">${mod.links.map(l=>linkFieldHTML(`${base}.links.${l.key}`,l.label,d.links[l.key])).join("")}</div>`:"";
+  return `<div class="card">
+    <div class="card-head"><h3>${esc(mod.title)}</h3></div>
+    <div class="card-body">${sums}<div class="tbl-wrap"><table class="data">
+      <thead><tr>${mod.columns.map(c=>`<th>${esc(c.label)}</th>`).join("")}<th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      <button class="btn ghost add-row" data-add="${base}">+ Tambah baris</button>
+      ${links}
+    </div></div>`;
+}
+
+function linksCard(base,mod,d){
+  if(!mod.links||!mod.links.length) return "";
+  return `<div class="card" style="margin-top:16px">
+    <div class="card-body">
+      <div class="section-title">Tautan (bisa diganti kapan saja)</div>
+      ${mod.links.map(l=>linkFieldHTML(`${base}.links.${l.key}`,l.label,d.links[l.key])).join("")}
+    </div></div>`;
+}
+
+/* ============================================================
+   6. RECOMPUTE (update tampilan turunan tanpa re-render input)
+   ============================================================ */
+function recompute(scope=document){
+  scope.querySelectorAll("[data-kpi]").forEach(el=>{
+    const num=+getPath(STATE.data,el.dataset.num)||0, den=+getPath(STATE.data,el.dataset.den)||0, p=pct(num,den);
+    const bar = el.matches(".bar")?el:el.querySelector(".bar");
+    if(bar){ bar.className="bar "+barClass(p); const i=bar.querySelector("i"); if(i) i.style.width=Math.min(p,100)+"%"; }
+    const val=el.querySelector(".val"); if(val){ const unit=val.querySelector("span")?.outerHTML||""; val.innerHTML=fmtNum(num)+unit; }
+    const pc=el.querySelector(".pct"); if(pc) pc.textContent=p+"%";
+    const sub=el.querySelector(".kpi-sub b"); if(sub) sub.textContent=fmtNum(den);
+    const subLbl=el.querySelector(".kpi-label"); if(subLbl) subLbl.textContent="Pemenuhan "+p+"%";
+  });
+  scope.querySelectorAll("[data-pct]").forEach(el=>{
+    const [n,dp]=el.dataset.pct.split("|");
+    el.textContent=pct(getPath(STATE.data,n),getPath(STATE.data,dp))+"%";
+  });
+  scope.querySelectorAll("[data-val]").forEach(el=>{ el.textContent=fmtNum(getPath(STATE.data,el.dataset.val)); });
+  scope.querySelectorAll("[data-hst]").forEach(el=>{ el.textContent=hst(getPath(STATE.data,el.dataset.hst)); });
+  scope.querySelectorAll("[data-sum]").forEach(el=>{
+    const [arrPath,field]=el.dataset.sum.split(":");
+    const arr=getPath(STATE.data,arrPath)||[];
+    const tot=arr.reduce((a,it)=>a+(+it[field]||0),0);
+    if(el.classList.contains("tag")) el.textContent="Total: "+fmtNum(tot)+" "+(el.textContent.split(" ").pop());
+    else el.textContent=fmtNum(tot);
+  });
+}
+function refreshLinkButtons(scope=document){
+  scope.querySelectorAll("[data-linkopen]").forEach(a=>{
+    const inp=a.parentElement.querySelector("input"); const u=safeUrl(inp?.value);
+    a.href=u||"#"; a.classList.toggle("disabled",!u);
+  });
+}
+
+/* ============================================================
+   7. RENDER NAV / HEADER / REMINDER
+   ============================================================ */
+const navEl=document.getElementById("staffNav");
+const subtabsEl=document.getElementById("subtabs");
+const contentEl=document.getElementById("content");
+
+function renderNav(){
+  navEl.innerHTML = `<div class="nav-label">Staff & Modul</div>` + Object.entries(SCHEMA).map(([k,s])=>{
+    const dl=daysSince(STATE.meta.updated[k]);
+    const sub = dl==null?"Belum ada update":(dl===0?"Update hari ini":`Update ${dl} hari lalu`);
+    return `<button class="staff-btn ${k===current.staff?"active":""}" data-staff="${k}">
+      <span class="avatar">${esc(s.initial)}</span>
+      <span class="who"><b>${esc(s.name)}</b><span>${sub}</span></span>
+    </button>`;
+  }).join("");
+}
+
+function renderSubtabs(){
+  const s=SCHEMA[current.staff];
+  subtabsEl.innerHTML=s.modules.map(m=>
+    `<button class="subtab ${m.key===current.module?"active":""}" data-module="${m.key}">${esc(m.title)}</button>`
+  ).join("");
+}
+
+function renderHeader(){
+  const s=SCHEMA[current.staff];
+  const m=s.modules.find(x=>x.key===current.module);
+  document.getElementById("crumb").textContent=`${s.name} / ${m?m.title:""}`;
+  document.getElementById("staffName").textContent=s.name;
+  document.getElementById("staffRole").textContent=s.role;
+  renderUpdatedInfo();
+}
+function renderUpdatedInfo(){
+  const el=document.getElementById("updatedInfo");
+  const ts=STATE.meta.updated[current.staff];
+  if(!ts){ el.innerHTML="Belum ada update"; return; }
+  const dl=daysSince(ts);
+  const dt=new Date(ts).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"});
+  el.innerHTML=`Update terakhir<br><b>${dt}</b> (${dl===0?"hari ini":dl+" hari lalu"})`;
+}
+function renderReminder(){
+  const el=document.getElementById("reminder");
+  const dl=daysSince(STATE.meta.updated[current.staff]);
+  const name=SCHEMA[current.staff].name;
+  if(dl==null){
+    el.className="reminder show overdue";
+    el.innerHTML=iconBell()+`<span><b>${esc(name)}</b> belum pernah mengisi data. Silakan lengkapi progress minggu ini.</span>`;
+  }else if(dl>=REMINDER_DAYS){
+    el.className="reminder show overdue";
+    el.innerHTML=iconBell()+`<span>Sudah <b>${dl} hari</b> sejak update terakhir. Waktunya update mingguan, ${esc(name)}!</span>`;
+  }else if(dl>=REMINDER_DAYS-2){
+    el.className="reminder show";
+    el.innerHTML=iconBell()+`<span>Update mingguan mendekati tenggat (${REMINDER_DAYS-dl} hari lagi). Jangan lupa perbarui data, ${esc(name)}.</span>`;
+  }else{
+    el.className="reminder";
+  }
+}
+function iconBell(){return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
+
+/* ---- render halaman aktif ---- */
+function render(){
+  renderNav(); renderSubtabs(); renderHeader(); renderReminder();
+  const s=SCHEMA[current.staff]; const m=s.modules.find(x=>x.key===current.module)||s.modules[0];
+  current.module=m.key;
+  contentEl.innerHTML=renderModule(current.staff,m);
+  refreshLinkButtons(contentEl);
+  contentEl.querySelectorAll("textarea").forEach(t=>{ t.style.height="auto"; t.style.height=Math.max(t.scrollHeight,38)+"px"; });
+  window.scrollTo({top:0});
+}
+
+/* ============================================================
+   8. EVENT BINDING
+   ============================================================ */
+// input di konten -> update state
+contentEl.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset.path){
+    let v=t.value;
+    if(t.type==="number") v=v===""?0:+v;
+    setPath(STATE.data,t.dataset.path,v);
+    recompute(t.closest(".card")||contentEl);
+    if(t.closest(".link-input")) refreshLinkButtons(t.closest(".link-input"));
+    touch(current.staff);
+    persist();
+    // auto-grow textarea
+    if(t.tagName==="TEXTAREA"){ t.style.height="auto"; t.style.height=t.scrollHeight+"px"; }
+  }
+});
+// tombol tambah / hapus baris
+contentEl.addEventListener("click",e=>{
+  const add=e.target.closest("[data-add]");
+  if(add){
+    const base=add.dataset.add; const [sk,mk]=base.split(".");
+    const mod=SCHEMA[sk].modules.find(x=>x.key===mk);
+    const blank={}; mod.columns.forEach(c=> blank[c.key]= c.type==="number"?0:"");
+    STATE.data[sk][mk].items.push(blank);
+    touch(sk); persist(); render(); return;
+  }
+  const del=e.target.closest("[data-del]");
+  if(del){
+    const parts=del.dataset.del.split("."); const idx=+parts.pop(); parts.pop(); // remove 'items'
+    const [sk,mk]=parts;
+    STATE.data[sk][mk].items.splice(idx,1);
+    touch(sk); persist(); render(); return;
+  }
+});
+// prevent link buttons with '#'
+contentEl.addEventListener("click",e=>{
+  const a=e.target.closest("[data-linkopen]");
+  if(a && (a.getAttribute("href")==="#"||a.classList.contains("disabled"))){ e.preventDefault(); }
+});
+
+// navigasi staff & modul
+navEl.addEventListener("click",e=>{
+  const b=e.target.closest("[data-staff]"); if(!b) return;
+  current.staff=b.dataset.staff; current.module=SCHEMA[current.staff].modules[0].key;
+  closeSidebar(); render();
+});
+subtabsEl.addEventListener("click",e=>{
+  const b=e.target.closest("[data-module]"); if(!b) return;
+  current.module=b.dataset.module; render();
+});
+
+// sidebar mobile
+const sidebar=document.getElementById("sidebar"), scrim=document.getElementById("scrim");
+function closeSidebar(){ sidebar.classList.remove("open"); scrim.classList.remove("show"); }
+document.getElementById("menuToggle").addEventListener("click",()=>{ sidebar.classList.add("open"); scrim.classList.add("show"); });
+scrim.addEventListener("click",closeSidebar);
+
+// sync status
+function renderSyncStatus(){
+  const dot=document.getElementById("syncDot"), txt=document.getElementById("syncText");
+  if(store.mode==="cloud"){ dot.className="dot"; txt.textContent="Tersinkron antar-device"; }
+  else if(store.mode==="local"){ dot.className="dot local"; txt.textContent="Tersimpan di perangkat ini"; }
+  else { dot.className="dot local"; txt.textContent="Mode sementara (tanpa simpan)"; }
+}
+
+// export / import
+document.getElementById("exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(STATE,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`rnd-tracker-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+});
+document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const obj=JSON.parse(r.result); if(obj.data){ STATE=obj; ensureDefaults(); persist(); render(); renderSyncStatus(); flash("Backup dipulihkan"); } }catch(_){ flash("File tidak valid"); } };
+  r.readAsText(f);
+});
+
+/* ============================================================
+   9. BOOT
+   ============================================================ */
+async function boot(){
+  await initStore();
+  const loaded = await store.load();
+  if(loaded && loaded.data){ STATE=loaded; if(!STATE.meta) STATE.meta={updated:{}}; if(!STATE.meta.updated) STATE.meta.updated={}; }
+  ensureDefaults();
+  renderSyncStatus();
+  render();
+  // simpan struktur awal bila kosong
+  if(!loaded) persist();
+  // dengarkan perubahan dari device lain (cloud)
+  let firstSnap=true;
+  store.watch(remote=>{
+    if(!remote||!remote.data) return;
+    if(firstSnap){ firstSnap=false; return; } // abaikan snapshot awal
+    suppressWrite=true;
+    STATE=remote; if(!STATE.meta) STATE.meta={updated:{}};
+    ensureDefaults();
+    render();
+    setTimeout(()=>suppressWrite=false,100);
+    flash("Data diperbarui dari device lain");
+  });
+}
+boot();
+</script>
+</body>
+</html>
