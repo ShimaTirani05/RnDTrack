@@ -244,11 +244,16 @@ table.data td.num{font-family:"Space Mono",monospace}
    - Sync antar-device via Firebase (opsional) + fallback lokal
    ============================================================ */
 
-/* ---------- 1. KONFIGURASI FIREBASE (untuk sync antar-device) ----------
-   Kosongkan (biarkan apiKey="") -> data tersimpan lokal di perangkat ini saja.
-   Isi dengan config proyek Firebase Anda -> data otomatis tersinkron
-   real-time ke SEMUA perangkat yang membuka aplikasi ini.
-   Lihat panduan-setup.md untuk langkah lengkap.                          */
+/* ========================================================================
+   1. KONFIGURASI FIREBASE (untuk sync otomatis antar-device)
+   ------------------------------------------------------------------------
+   PENTING: nama variabel HARUS tetap "firebaseConfig".
+   Nilai di bawah sudah diisi dari proyek Anda (RnDTracker). Bila salah satu
+   perlu diganti, salin-tempel dari Firebase Console > Project settings >
+   bagian "Your apps" (pilih Config), JANGAN ubah nama variabelnya.
+
+   Untuk memakai penyimpanan lokal saja (tanpa sync), kosongkan apiKey ("").
+   ======================================================================== */
 const firebaseConfig = {
   apiKey: "AIzaSyBuMfvSmLWLtyUwRlW0Eah9dSzBrUuxdtA",
   authDomain: "rndtracker-d882e.firebaseapp.com",
@@ -256,7 +261,7 @@ const firebaseConfig = {
   storageBucket: "rndtracker-d882e.firebasestorage.app",
   messagingSenderId: "550042561447",
   appId: "1:550042561447:web:afb43074fc04831e59a482",
-  measurementId: "G-652WLK9G22"
+  measurementId: "G-65ZWLK9G22"
 };
 /* -------------------------------------------------------------------- */
 
@@ -496,13 +501,13 @@ function setPath(obj,path,val){
 
 /* ---- Adapter: Firebase (real-time) atau Lokal ---- */
 async function initStore(){
-  if(FIREBASE_CONFIG.apiKey){
+  if(typeof firebaseConfig!=="undefined" && firebaseConfig && firebaseConfig.apiKey){
     try{
       const [{ initializeApp }, fs] = await Promise.all([
         import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
         import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
       ]);
-      const app = initializeApp(FIREBASE_CONFIG);
+      const app = initializeApp(firebaseConfig);
       const db = fs.getFirestore(app);
       const ref = fs.doc(db,"rnd","state");
       store = {
