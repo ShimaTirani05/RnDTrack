@@ -241,21 +241,22 @@ table.data td.num{font-family:"Space Mono",monospace}
    R&D PROGRESS TRACKER
    - Config-driven modul untuk 6 staff
    - Semua field bisa diedit, autosave
-   - Sync antar-device via Firebase (opsional) + fallback lokal
+   - Sync antar-device via  (opsional) + fallback lokal
    ============================================================ */
 
-/* ---------- 1. KONFIGURASI FIREBASE (untuk sync antar-device) ----------
+/* ---------- 1. KONFIGURASI  (untuk sync antar-device) ----------
    Kosongkan (biarkan apiKey="") -> data tersimpan lokal di perangkat ini saja.
-   Isi dengan config proyek Firebase Anda -> data otomatis tersinkron
+   Isi dengan config proyek  Anda -> data otomatis tersinkron
    real-time ke SEMUA perangkat yang membuka aplikasi ini.
    Lihat panduan-setup.md untuk langkah lengkap.                          */
-const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+const firebaseConfig = {
+  apiKey: "AIzaSyBuMfvSmLWLtyUwRlW0Eah9dSzBrUuxdtA",
+  authDomain: "rndtracker-d882e.firebaseapp.com",
+  projectId: "rndtracker-d882e",
+  storageBucket: "rndtracker-d882e.firebasestorage.app",
+  messagingSenderId: "550042561447",
+  appId: "1:550042561447:web:afb43074fc04831e59a482",
+  measurementId: "G-652WLK9G22"
 };
 /* -------------------------------------------------------------------- */
 
