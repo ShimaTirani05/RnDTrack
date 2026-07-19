@@ -241,12 +241,12 @@ table.data td.num{font-family:"Space Mono",monospace}
    R&D PROGRESS TRACKER
    - Config-driven modul untuk 6 staff
    - Semua field bisa diedit, autosave
-   - Sync antar-device via  (opsional) + fallback lokal
+   - Sync antar-device via Firebase (opsional) + fallback lokal
    ============================================================ */
 
-/* ---------- 1. KONFIGURASI  (untuk sync antar-device) ----------
+/* ---------- 1. KONFIGURASI FIREBASE (untuk sync antar-device) ----------
    Kosongkan (biarkan apiKey="") -> data tersimpan lokal di perangkat ini saja.
-   Isi dengan config proyek  Anda -> data otomatis tersinkron
+   Isi dengan config proyek Firebase Anda -> data otomatis tersinkron
    real-time ke SEMUA perangkat yang membuka aplikasi ini.
    Lihat panduan-setup.md untuk langkah lengkap.                          */
 const firebaseConfig = {
@@ -513,8 +513,8 @@ async function initStore(){
           return null;
         },
         async save(state){ await fs.setDoc(ref, deepClone(state)); },
-        watch(cb){
-          fs.onSnapshot(ref, snap=>{ if(snap.exists()) cb(snap.data()); });
+        watch(cb,onErr){
+          fs.onSnapshot(ref, snap=>{ if(snap.exists()) cb(snap.data()); }, err=>{ if(onErr) onErr(err); });
         }
       };
       return;
@@ -536,6 +536,13 @@ async function initStore(){
     watch(){}
   };
 }
+
+function setSyncError(msg){
+  const dot=document.getElementById("syncDot"), txt=document.getElementById("syncText");
+  if(dot) dot.className="dot local";
+  if(txt) txt.textContent=msg;
+}
+function fixMeta(){ if(!STATE.meta) STATE.meta={updated:{}}; if(!STATE.meta.updated) STATE.meta.updated={}; }
 
 function persist(){
   clearTimeout(saveTimer);
@@ -952,26 +959,46 @@ document.getElementById("importFile").addEventListener("change",e=>{
    9. BOOT
    ============================================================ */
 async function boot(){
-  await initStore();
-  const loaded = await store.load();
-  if(loaded && loaded.data){ STATE=loaded; if(!STATE.meta) STATE.meta={updated:{}}; if(!STATE.meta.updated) STATE.meta.updated={}; }
+  // 1) Tampilkan UI segera dengan data default — apa pun yang terjadi berikutnya,
+  //    layar tidak akan pernah kosong.
+  fixMeta();
   ensureDefaults();
-  renderSyncStatus();
   render();
-  // simpan struktur awal bila kosong
-  if(!loaded) persist();
-  // dengarkan perubahan dari device lain (cloud)
+
+  // 2) Siapkan penyimpanan (punya fallback internal, tak melempar).
+  await initStore();
+  renderSyncStatus();
+
+  // 3) Muat data tersimpan. Bila gagal (mis. Rules Firestore menolak),
+  //    aplikasi tetap jalan; hanya sync yang bermasalah.
+  let loaded=null;
+  try{
+    loaded = await store.load();
+    if(loaded && loaded.data){ STATE=loaded; fixMeta(); ensureDefaults(); render(); }
+  }catch(e){
+    console.error("Gagal memuat data:",e);
+    setSyncError("Tak bisa baca data — cek Rules Firestore");
+  }
+  // simpan struktur awal bila belum ada data (khusus mode lokal)
+  if(!loaded && store.mode!=="cloud") persist();
+
+  // 4) Dengarkan perubahan dari device lain (cloud).
   let firstSnap=true;
-  store.watch(remote=>{
-    if(!remote||!remote.data) return;
-    if(firstSnap){ firstSnap=false; return; } // abaikan snapshot awal
-    suppressWrite=true;
-    STATE=remote; if(!STATE.meta) STATE.meta={updated:{}};
-    ensureDefaults();
-    render();
-    setTimeout(()=>suppressWrite=false,100);
-    flash("Data diperbarui dari device lain");
-  });
+  try{
+    store.watch(remote=>{
+      if(!remote||!remote.data) return;
+      if(firstSnap){ firstSnap=false; return; } // abaikan snapshot awal
+      suppressWrite=true;
+      STATE=remote; fixMeta();
+      ensureDefaults();
+      render();
+      setTimeout(()=>suppressWrite=false,100);
+      flash("Data diperbarui dari device lain");
+    }, err=>{
+      console.error("Sync error:",err);
+      setSyncError("Sync terputus — cek Rules Firestore");
+    });
+  }catch(e){ console.warn("watch gagal:",e); }
 }
 boot();
 </script>
